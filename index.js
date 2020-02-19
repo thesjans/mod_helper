@@ -51,6 +51,13 @@ client.on('message', message => {
             console.log("Set request channel to ", message.channel.name);
             return;
         }
+        if (message.content === prefix + "settings") {
+            message.channel.send(
+                "request channel id: `" + requestChannelId + "`\n" + 
+                "mod channel id: `" + modChannelId + "`\n" + 
+                "mod role id: `" + modRoleId + "`"
+            );
+        }
         if (message.content.startsWith(prefix + "setmodrole")) {
             let role = message.guild.roles.find("id", message.mentions.roles.first().id);
             if (role) {
