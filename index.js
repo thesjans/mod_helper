@@ -4,8 +4,15 @@ const config = require('./config.json');
 
 const prefix = config.prefix || "!";
 
+// moderator channel where requests will be sent to
+// set by '[prefix]setmodrole'
 let modChannel;
+// request channel where requests will be taken from
+// set by '[prefix]setrequestrole'
 let requestChannel;
+// role which commands setmodrole, setrequestrole and setmodrole will be restricted to
+//set by '[prefix]setmodrole @[role name]'
+let modRoleId;
 
 let requests = [];
 
@@ -15,17 +22,32 @@ client.once('ready', () => {
 
 client.on('message', message => {
     if (message.author.bot) return;
-    if (message.content === prefix + "setmodchannel") {
-        modChannel = message.channel;
-        message.react('✅');
-        console.log("Set mod channel to ", message.channel.name);
-        return;
-    }
-    if (message.content === prefix + "setrequestchannel") {
-        requestChannel = message.channel;
-        message.react('✅');
-        console.log("Set request channel to ", message.channel.name);
-        return;
+    if (!modRoleId || message.guild.member(message.author).roles.find((role) => role.id === modRoleId)) {
+        if (message.content === prefix + "setmodchannel") {
+            modChannel = message.channel;
+            message.react('✅');
+            console.log("Set mod channel to ", message.channel.name);
+            return;
+        }
+        if (message.content === prefix + "setrequestchannel") {
+            requestChannel = message.channel;
+            message.react('✅');
+            console.log("Set request channel to ", message.channel.name);
+            return;
+        }
+        if (message.content.startsWith(prefix + "setmodrole")) {
+            let role = message.guild.roles.find("id", message.mentions.roles.first().id);
+            if (role) {
+                modRoleId = role.id;
+                message.react('✅');
+                console.log("Set moderator role to ", role);
+            } else {
+                message.react('❌');
+                message.channel.send("Couldn't find role!");
+                console.log("Failed to set moderator role! Triggering message: ", message);
+            }
+            return;
+        }
     }
     if (message.channel === requestChannel ||  message.channel === message.author.dmChannel) {
         let isAnon = message.content.startsWith(prefix + "anon");
@@ -38,7 +60,7 @@ client.on('message', message => {
         console.log("new request: ", request);
         modChannel.send(
             (isAnon ? "Anonymous user" : "User " + request.userTag) + 
-            " sent following moderation request:\n> " + request.content + 
+            " sent following moderation request:\n> " + request.content.replace("\n", "\n> ") + 
             "\nUse requestId `" + request.requestId + "` when responding to this message");
         message.delete();
     }
