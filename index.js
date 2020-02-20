@@ -12,9 +12,11 @@ console.log("loaded settings: ", settingsData);
 // moderator channel id where requests will be sent to
 // set by '[prefix]setmodrole'
 let modChannelId = settingsData.modChannelId;
+
 // request channel id where requests will be taken from
 // set by '[prefix]setrequestrole'
 let requestChannelId = settingsData.requestChannelId;
+
 // role which commands setmodrole, setrequestrole and setmodrole will be restricted to
 //set by '[prefix]setmodrole @[role name]'
 let modRoleId = settingsData.modRoleId;
@@ -28,13 +30,16 @@ function saveSettings() {
     fs.writeFile("settings.json", jsonData, err => console.log(err));
 }
 
+// will be run after logging into discord
 client.once('ready', () => {
     modChannel = client.channels.get(modChannelId);
 	console.log('Ready!');
 });
 
 client.on('message', message => {
+    // don't react to bot messages
     if (message.author.bot) return;
+    // check if user has mod role if mod role is set
     if (!modRoleId || message.guild.member(message.author).roles.find((role) => role.id === modRoleId)) {
         if (message.content === prefix + "setmodchannel") {
             modChannel = message.channel;
@@ -73,6 +78,9 @@ client.on('message', message => {
             return;
         }
     }
+
+    // check for requests (in request channel or bot's DMs)
+    // forwards message into mod chat and deletes original msg with an id
     if (message.channel.id === requestChannelId ||  message.channel === message.author.dmChannel) {
         let isAnon = message.content.startsWith(prefix + "anon");
         let request = {
@@ -88,6 +96,9 @@ client.on('message', message => {
             "\nUse requestId `" + request.requestId + "` when responding to this message");
         message.delete();
     }
+
+    // check for replies in mod channel
+    // replies are sent into requester's DMs 
     if (message.channel.id === modChannelId && (message.content.startsWith(prefix + "reply") || message.content.startsWith(prefix + "r"))) {
         let requestId = parseInt(message.content.slice(prefix.length).split(" ")[1], 10);
         if (isNaN(requestId) || requestId < 0 || requestId >= requests.length) {
@@ -119,4 +130,7 @@ client.on('message', message => {
 
 })
 
+// requires bot token in config file 
+// guide for setting up your bot account and getting its token:
+// https://discordjs.guide/preparations/setting-up-a-bot-application.html 
 client.login(config.token);
